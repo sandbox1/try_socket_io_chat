@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Socket.IO chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font: 13px Helvetica, Arial;
+        }
+
+        form {
+            background: #000;
+            padding: 3px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        form input {
+            border: 0;
+            padding: 10px;
+            width: 90%;
+            margin-right: .5%;
+        }
+
+        form button {
+            width: 9%;
+            background: rgb(130, 224, 255);
+            border: none;
+            padding: 10px;
+        }
+
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        #messages li {
+            padding: 5px 10px;
+        }
+
+        #messages li:nth-child(odd) {
+            background: #eee;
+        }
+
+        #status {
+            background-color: #9E9D9D;
+            padding: 2px;
+            margin: 1px;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script type="text/javascript">
+        
+        function appendText(msg) {
+            $('#messages').append($('<li>').text(msg));
+        }
+
+        function writeStatus(msg) {
+            $('#status').text(msg);
+        }
+
+        $(function () {
+            
+            nickname = undefined
+            var socket = io();
+            
+            $('form').submit(function () {
+                let myMessage = nickname + ':' + $('#m').val()
+                appendText(myMessage)
+                socket.emit('user-message',myMessage)
+                $('#m').val('')
+                return false;
+            })
+
+            socket.on('user-message',function(msg){
+                appendText(msg)
+            })
+
+            socket.on('user-connected',function(info){
+                let message = info.name + ' Connected'
+                if(!nickname){
+                    nickname = info.name
+                    message = `Your Connected (${nickname})`
+                }
+                appendText(message)
+                writeStatus('Connected: ' + info.time)
+            })
+
+            socket.on('user-disconnected',function(msg){
+                appendText(msg)
+            })
+
+            socket.on('user-not-typing', function(user){
+                writeStatus(':')
+            })
+
+            socket.on('user-typing', function(user){
+                writeStatus(user + ' is typing...')
+            })
+
+            $('#m').focusin(function(e){
+                socket.emit('user-typing', nickname);
+            })
+
+            $('#m').focusout(function(e){
+                socket.emit('user-not-typing');
+            })
+        })
+    </script>
+</head>
+
+<body>
+    <ul id="messages"></ul>
+
+    <form action="">
+        
+        <input id="m" autocomplete="off" /><button>Send</button>
+        <div id="status" class="status">:</div>
+    </form>
+</body>
+
+</html>
